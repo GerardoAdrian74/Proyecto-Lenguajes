@@ -1,12 +1,70 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <cstdlib>
+#include <string>
+using namespace std;
+
+
+struct Constante {
+	string clave;
+	float valor;
+
+};
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
+vector<Constante> CargarConstantes() {
+	ifstream archivo;
+	archivo.open("Constantes.txt", ios::in);
+	if (archivo.fail()) {
+		cout << "Error abriendo el archivo de constantes\n";
+		archivo.close();
+	}
+	vector<Constante> arr_Constantes;
+	
+	string linea;
+	
+	while (getline(archivo, linea)) {
+		bool claveLeida = false;
+		string  tmpclave = "", tmpValor = "";
+		for (int i = 0; i < linea.size(); i++) {
+			if (linea[i] != ' ') {
+				if (claveLeida == true) {
+					tmpValor += linea[i];
+				}
+				if (linea[i] == '=') {
+					claveLeida = true;
+				}
+				if (claveLeida == false) {
+					tmpclave += linea[i];
+				}
+			}
+
+		}
+		Constante constante;
+		constante.clave = tmpclave;
+		constante.valor = stof(tmpValor);
+		arr_Constantes.push_back(constante);
+
+	}
+	archivo.close();
+
+	return arr_Constantes;
+}
+
 int main(int argc, char* args[]) {
-	std::cout<< "hola";
+	ifstream archivo;
+	archivo.open("Constantes.txt", ios::in);
+	if (archivo.fail()) {
+		cout << "Error abriendo el archivo de constantes\n";
+		archivo.close();
+		return 1;
+	}
+	vector<Constante> Lista_Constantes= CargarConstantes();
 	//The window we'll be rendering to
 	SDL_Window* window = NULL;
 

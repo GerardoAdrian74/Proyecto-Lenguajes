@@ -5,6 +5,8 @@
 #include <vector>
 #include <cstdlib>
 #include <string>
+#include <cctype>
+#include <algorithm>
 using namespace std;
 
 
@@ -17,6 +19,15 @@ struct Constante {
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
+bool esNumeroValido(const string& s) {
+	char* end = nullptr;
+	errno = 0; 
+	float val = std::strtof(s.c_str(), &end);
+	return end == s.c_str() + s.size() && errno == 0;
+}
+bool SoloLetras(const string& s) {
+	return all_of(s.begin(), s.end(), ::isalpha);
+}
 Constante parsearExpresion(string expresion) {
 	Constante Exp_Parseado;
 	bool claveLeida = false;
@@ -33,11 +44,15 @@ Constante parsearExpresion(string expresion) {
 				tmpclave += expresion[i];
 			}
 		}
-
 	}
-	Exp_Parseado.clave = tmpclave;
-	Exp_Parseado.valor = stof(tmpValor);
-
+	if (esNumeroValido(tmpValor)&&SoloLetras(tmpclave)&&tmpclave!="" && tmpValor != "") {
+		Exp_Parseado.valor = stof(tmpValor);
+		Exp_Parseado.clave = tmpclave;
+	}
+	else {
+		Exp_Parseado.valor = -1;
+		Exp_Parseado.clave = '/';
+	}
 	return Exp_Parseado;
 }
 vector<Constante> CargarConstantes() {
@@ -93,6 +108,9 @@ bool agregarVariable(vector<Constante> ListaConstantes, vector<Constante> ListaV
 	}
 	//Parsear expresion
 	Constante ExpresionParseada = parsearExpresion(expresion);
+	if (ExpresionParseada.valor == -1&&ExpresionParseada.clave=="/") {
+		return false;
+	}
 	//Comparacion Constantes
 	for (Constante tmp : ListaConstantes) {
 		if (ExpresionParseada.clave == tmp.clave) {
@@ -110,6 +128,7 @@ bool agregarVariable(vector<Constante> ListaConstantes, vector<Constante> ListaV
 
 	return true;
 }
+
 int main(int argc, char* args[]) {
 	ifstream archivo;
 	vector<Constante>  Lista_Constantes = CargarConstantes();

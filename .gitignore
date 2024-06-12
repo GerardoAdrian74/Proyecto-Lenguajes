@@ -361,6 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/Evaluador_Expresiones.sln
-/Evaluador_Expresiones.vcxproj
-/Evaluador_Expresiones.vcxproj.filters

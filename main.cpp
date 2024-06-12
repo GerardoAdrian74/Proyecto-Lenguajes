@@ -1,3 +1,4 @@
+#define CATCH_CONFIG_RUNNER
 #include <SDL.h>
 #include <stdio.h>
 #include <iostream>
@@ -7,142 +8,43 @@
 #include <string>
 #include <cctype>
 #include <algorithm>
+#include "catch.hpp"
+#include "Constantes_Variables.hpp"
 using namespace std;
 
-
-struct Constante {
-	string clave;
-	float valor;
-
-};
-//Screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
-
-bool esNumeroValido(const string& s) {
-	char* end = nullptr;
-	errno = 0; 
-	float val = std::strtof(s.c_str(), &end);
-	return end == s.c_str() + s.size() && errno == 0;
-}
-bool SoloLetras(const string& s) {
-	return all_of(s.begin(), s.end(), ::isalpha);
-}
-Constante parsearExpresion(string expresion) {
-	Constante Exp_Parseado;
-	bool claveLeida = false;
-	string  tmpclave = "", tmpValor = "";
-	for (int i = 0; i < expresion.size(); i++) {
-		if (expresion[i] != ' ') {
-			if (claveLeida == true) {
-				tmpValor += expresion[i];
-			}
-			if (expresion[i] == '=') {
-				claveLeida = true;
-			}
-			if (claveLeida == false) {
-				tmpclave += expresion[i];
-			}
-		}
-	}
-	if (esNumeroValido(tmpValor)&&SoloLetras(tmpclave)&&tmpclave!="" && tmpValor != "") {
-		Exp_Parseado.valor = stof(tmpValor);
-		Exp_Parseado.clave = tmpclave;
-	}
-	else {
-		Exp_Parseado.valor = -1;
-		Exp_Parseado.clave = '/';
-	}
-	return Exp_Parseado;
-}
-vector<Constante> CargarConstantes() {
-	ifstream archivo;
-	vector<Constante> arr_Constantes;
-	archivo.open("Constantes.txt", ios::in);
-	if (archivo.fail()) {
-		archivo.close();
-		return arr_Constantes;
-	}
-
-
-	string linea;
-
-	while (getline(archivo, linea)) {
-		Constante constante = parsearExpresion(linea);
-		arr_Constantes.push_back(constante);
-
-	}
-	archivo.close();
-	return arr_Constantes;
-}
-vector<Constante> CargarVariables() {
-	ifstream archivo;
-	vector<Constante> arr_variables;
-	archivo.open("Variables.txt", ios::in);
-	if (archivo.fail()) {
-		archivo.close();
-		return arr_variables;
-	}
-	string linea;
-	while (getline(archivo, linea)) {
-		Constante constante = parsearExpresion(linea);
-		arr_variables.push_back(constante);
-
-	}
-	archivo.close();
-	return arr_variables;
+int runTests() {
+	char* argv[] = { (char*)"", (char*)"--success" }; 
+	int argc = 2;
+	return Catch::Session().run(argc, argv);
 }
 
-bool agregarVariable(vector<Constante> ListaConstantes, vector<Constante> ListaVariables, string expresion) {
-	ifstream leer;
-	ofstream escribir;
+TEST_CASE("Test Evaluador de Expresiones", "[Constantes_Variables]") {
+	Constantes_Variables obj;
 
-	leer.open("Variables.txt");
-	if (leer.fail()) {
-		leer.close();
-		escribir.open("Variables.txt", ios::out);
-
+	SECTION("Prueba esNumeroValido") {
+		REQUIRE(obj.esNumeroValido("12") == true);
+		REQUIRE(obj.esNumeroValido("12.34") == true);
+		REQUIRE(obj.esNumeroValido("abc") == false);
 	}
-	else {
-		escribir.open("Variables.txt", ios::app);
-	}
-	//Parsear expresion
-	Constante ExpresionParseada = parsearExpresion(expresion);
-	if (ExpresionParseada.valor == -1&&ExpresionParseada.clave=="/") {
-		return false;
-	}
-	//Comparacion Constantes
-	for (Constante tmp : ListaConstantes) {
-		if (ExpresionParseada.clave == tmp.clave) {
-			return false;
-		}
-	}
-	//Comparacion Variables
-	for (Constante tmp : ListaVariables) {
-		if (ExpresionParseada.clave == tmp.clave) {
-			return false;
-		}
-	}
-	escribir << expresion << endl;
-	escribir.close();
-
-	return true;
 }
 
 int main(int argc, char* args[]) {
-	ifstream archivo;
-	vector<Constante>  Lista_Constantes = CargarConstantes();
-	vector<Constante> Lista_Variables = CargarVariables();
-	string expresion;
-	cout << "Ingresa una expresion para una variable: ";
-	cin >> expresion;
-	if (agregarVariable(Lista_Constantes, Lista_Variables, expresion)) {
-		cout << "Se agrego correctamente\n";
-	}
-	else {
-		cout << "Error en la variable\n";
+	//Inicio pruebas
+	if (false) {
+	cout << "Ejecutando pruebas de Catch2..." << endl;
+	int testResult = runTests();
+	if (testResult != 0) {
+		cout << "Algunas pruebas fallaron." << endl;
+		return testResult;
 	}
 
+	cout << "Todas las pruebas pasaron!" << endl;
+	}
+	//Fin TDD pruebas
+	
+	//Screen dimension constants
+	const int SCREEN_WIDTH = 640;
+	const int SCREEN_HEIGHT = 480;
 	//SDL
 	SDL_Window* window = nullptr;
 	SDL_Surface* screenSurface = NULL;

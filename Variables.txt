@@ -1,4 +1,7 @@
 x=120012012
 y=32
 var=5
-java=32
+java=123
+port=5
+mom=3
+jj=1232

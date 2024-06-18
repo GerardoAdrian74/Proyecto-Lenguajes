@@ -18,8 +18,29 @@
     <ClCompile Include="main.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
+    <ClCompile Include="Posfijo.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
+    <ClCompile Include="expression_evaluator.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Constantes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Posfijo.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="expression_evaluator.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="LibreFranklin-Bold.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Debug\SDL2_ttf.dll" />
+    <None Include="Debug\SDL2.dll" />
   </ItemGroup>
 </Project>

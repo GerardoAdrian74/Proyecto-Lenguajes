@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
 
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
@@ -64,7 +65,24 @@ void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text,
     SDL_DestroyTexture(textTexture);
 }
 
-void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression, const std::vector<std::string>& history, const std::unordered_map<std::string, int>& variables) {
+std::vector<std::string> loadConstants(const std::string& filename) {
+    std::vector<std::string> constants;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cout << "Failed to open file: " << filename << std::endl;
+        return constants;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        constants.push_back(line);
+    }
+
+    file.close();
+    return constants;
+}
+
+void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression, const std::vector<std::string>& history, const std::unordered_map<std::string, int>& variables, const std::vector<std::string>& constants) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
@@ -90,7 +108,13 @@ void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expressio
     renderText(renderer, font, "Historial", historialBox.x + historialBox.w / 2, historialBox.y + 20, textColor);
     renderText(renderer, font, "Procesar Expresion", botonBox.x + botonBox.w / 2, botonBox.y + botonBox.h / 2, textColor);
 
-    int yOffset = variablesBox.y + 40;
+    int yOffset = constantesBox.y + 40;
+    for (const std::string& constant : constants) {
+        renderText(renderer, font, constant, constantesBox.x + constantesBox.w / 2, yOffset, textColor);
+        yOffset += 30;
+    }
+
+    yOffset = variablesBox.y + 40;
     for (const auto& var : variables) {
         renderText(renderer, font, var.first + " = " + std::to_string(var.second), variablesBox.x + variablesBox.w / 2, yOffset, textColor);
         yOffset += 30;
@@ -111,7 +135,7 @@ bool isMouseInsideBox(int mouseX, int mouseY, SDL_Rect box) {
 }
 
 bool isConstant(const std::string& variable) {
-    return variable == "PI" || variable == "E"; // Agregar más constantes si es necesario
+    return variable == "PI" || variable == "E";
 }
 
 void processExpression(const std::string& expression, std::unordered_map<std::string, int>& variables) {
@@ -147,6 +171,8 @@ int main(int argc, char* args[]) {
         return -1;
     }
 
+    std::vector<std::string> constants = loadConstants("Constantes.txt");
+
     bool quit = false;
     SDL_Event e;
     std::string expression;
@@ -172,22 +198,25 @@ int main(int argc, char* args[]) {
                 }
             }
             else if (e.type == SDL_MOUSEBUTTONDOWN) {
-                int x, y;
+                int x, y
+
+                    ;
                 SDL_GetMouseState(&x, &y);
                 if (isMouseInsideBox(x, y, botonBox)) {
                     processExpression(expression, variables);
                     history.push_back(expression);
                     std::cout << "Expresion guardada: " << expression << std::endl;
-                    expression.clear(); // Limpiar la expresión después de guardarla
+                    expression.clear(); 
                 }
             }
         }
 
-        drawUI(renderer, font, expression, history, variables);
+        drawUI(renderer, font, expression, history, variables, constants);
     }
     SDL_StopTextInput();
     close(window, renderer, font);
 
     return 0;
 }
+
 

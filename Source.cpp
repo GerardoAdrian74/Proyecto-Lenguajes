@@ -3,6 +3,7 @@
 #include <SDL_ttf.h>
 #include <iostream>
 #include <string>
+#include <vector>
 
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
@@ -62,7 +63,7 @@ void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text,
     SDL_DestroyTexture(textTexture);
 }
 
-void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression) {
+void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression, const std::vector<std::string>& history) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
@@ -72,7 +73,7 @@ void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expressio
     SDL_Rect ingresoBox = { 300, 50, 400, 150 };
     SDL_Rect variablesBox = { 750, 50, 200, 500 };
     SDL_Rect historialBox = { 300, 250, 400, 300 };
-    SDL_Rect botonBox = { ingresoBox.x + ingresoBox.w / 4, ingresoBox.y + ingresoBox.h + 1.5, ingresoBox.w / 2, 50 };  
+    SDL_Rect botonBox = { ingresoBox.x + ingresoBox.w / 4, ingresoBox.y + ingresoBox.h + 1.5, ingresoBox.w / 2, 50 };
     SDL_RenderDrawRect(renderer, &constantesBox);
     SDL_RenderDrawRect(renderer, &ingresoBox);
     SDL_RenderDrawRect(renderer, &variablesBox);
@@ -87,6 +88,12 @@ void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expressio
     renderText(renderer, font, "Variables", variablesBox.x + variablesBox.w / 2, variablesBox.y + 20, textColor);
     renderText(renderer, font, "Historial", historialBox.x + historialBox.w / 2, historialBox.y + 20, textColor);
     renderText(renderer, font, "Procesar Expresion", botonBox.x + botonBox.w / 2, botonBox.y + botonBox.h / 2, textColor);
+
+    int yOffset = historialBox.y + historialBox.h - 250;
+    for (const std::string& expr : history) {
+        renderText(renderer, font, expr, historialBox.x + historialBox.w / 2, yOffset, textColor);
+        yOffset += 30; 
+    }
 
     SDL_RenderPresent(renderer);
 }
@@ -115,10 +122,8 @@ int main(int argc, char* args[]) {
     bool quit = false;
     SDL_Event e;
     std::string expression;
-    std::string savedExpression;
-   
-   // SDL_Rect botonBox = { 300 + 500 / 4, 50 + 150 + 20, 400 / 4, 50 };
-   
+    std::vector<std::string> history;
+
     SDL_Rect botonBox = { 300 + 400 / 4, 50 + 150 - 25, 400 / 2, 50 };
     SDL_StartTextInput();
     while (!quit) {
@@ -134,7 +139,6 @@ int main(int argc, char* args[]) {
                     expression.pop_back();
                 }
                 else if (e.key.keysym.sym == SDLK_RETURN) {
-                    
                     std::cout << "Expresion ingresada: " << expression << std::endl;
                 }
             }
@@ -142,13 +146,14 @@ int main(int argc, char* args[]) {
                 int x, y;
                 SDL_GetMouseState(&x, &y);
                 if (isMouseInsideBox(x, y, botonBox)) {
-                    savedExpression = expression;
-                    std::cout << "Expresion guardada: " << savedExpression << std::endl;
+                    history.push_back(expression);
+                    std::cout << "Expresion guardada: " << expression << std::endl;
+                    expression.clear(); // Limpiar la expresión después de guardarla
                 }
             }
         }
 
-        drawUI(renderer, font, expression);
+        drawUI(renderer, font, expression, history);
     }
     SDL_StopTextInput();
     close(window, renderer, font);

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
@@ -63,7 +64,7 @@ void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text,
     SDL_DestroyTexture(textTexture);
 }
 
-void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression, const std::vector<std::string>& history) {
+void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression, const std::vector<std::string>& history, const std::unordered_map<std::string, int>& variables) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
@@ -89,10 +90,16 @@ void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expressio
     renderText(renderer, font, "Historial", historialBox.x + historialBox.w / 2, historialBox.y + 20, textColor);
     renderText(renderer, font, "Procesar Expresion", botonBox.x + botonBox.w / 2, botonBox.y + botonBox.h / 2, textColor);
 
-    int yOffset = historialBox.y + historialBox.h - 250;
+    int yOffset = variablesBox.y + 40;
+    for (const auto& var : variables) {
+        renderText(renderer, font, var.first + " = " + std::to_string(var.second), variablesBox.x + variablesBox.w / 2, yOffset, textColor);
+        yOffset += 30;
+    }
+
+    yOffset = historialBox.y + 40;
     for (const std::string& expr : history) {
         renderText(renderer, font, expr, historialBox.x + historialBox.w / 2, yOffset, textColor);
-        yOffset += 30; 
+        yOffset += 30;
     }
 
     SDL_RenderPresent(renderer);
@@ -101,6 +108,27 @@ void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expressio
 bool isMouseInsideBox(int mouseX, int mouseY, SDL_Rect box) {
     return (mouseX > box.x) && (mouseX < box.x + box.w) &&
         (mouseY > box.y) && (mouseY < box.y + box.h);
+}
+
+bool isConstant(const std::string& variable) {
+    return variable == "PI" || variable == "E"; // Agregar más constantes si es necesario
+}
+
+void processExpression(const std::string& expression, std::unordered_map<std::string, int>& variables) {
+    size_t eqPos = expression.find('=');
+    if (eqPos != std::string::npos) {
+        std::string var = expression.substr(0, eqPos);
+        std::string val = expression.substr(eqPos + 1);
+        var.erase(remove_if(var.begin(), var.end(), isspace), var.end());
+        val.erase(remove_if(val.begin(), val.end(), isspace), val.end());
+
+        if (!isConstant(var)) {
+            variables[var] = std::stoi(val);
+        }
+        else {
+            std::cout << "Error: No se puede asignar a una constante." << std::endl;
+        }
+    }
 }
 
 int main(int argc, char* args[]) {
@@ -123,6 +151,7 @@ int main(int argc, char* args[]) {
     SDL_Event e;
     std::string expression;
     std::vector<std::string> history;
+    std::unordered_map<std::string, int> variables;
 
     SDL_Rect botonBox = { 300 + 400 / 4, 50 + 150 - 25, 400 / 2, 50 };
     SDL_StartTextInput();
@@ -146,6 +175,7 @@ int main(int argc, char* args[]) {
                 int x, y;
                 SDL_GetMouseState(&x, &y);
                 if (isMouseInsideBox(x, y, botonBox)) {
+                    processExpression(expression, variables);
                     history.push_back(expression);
                     std::cout << "Expresion guardada: " << expression << std::endl;
                     expression.clear(); // Limpiar la expresión después de guardarla
@@ -153,10 +183,11 @@ int main(int argc, char* args[]) {
             }
         }
 
-        drawUI(renderer, font, expression, history);
+        drawUI(renderer, font, expression, history, variables);
     }
     SDL_StopTextInput();
     close(window, renderer, font);
 
     return 0;
 }
+

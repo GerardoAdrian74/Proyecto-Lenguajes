@@ -1,6 +1,8 @@
+
 #include <SDL.h>
 #include <SDL_ttf.h>
 #include <iostream>
+#include <string>
 
 const int SCREEN_WIDTH = 1000;
 const int SCREEN_HEIGHT = 600;
@@ -39,8 +41,12 @@ void close(SDL_Window* window, SDL_Renderer* renderer, TTF_Font* font) {
     SDL_Quit();
 }
 
-void renderText(SDL_Renderer* renderer, TTF_Font* font, const char* text, int x, int y, SDL_Color textColor) {
-    SDL_Surface* textSurface = TTF_RenderText_Solid(font, text, textColor);
+void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, int x, int y, SDL_Color textColor) {
+    if (text.empty()) {
+        return; // Evita renderizar texto vacío
+    }
+
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, text.c_str(), textColor);
     if (textSurface == nullptr) {
         std::cout << "Unable to render text surface! TTF_Error: " << TTF_GetError() << std::endl;
         return;
@@ -56,35 +62,38 @@ void renderText(SDL_Renderer* renderer, TTF_Font* font, const char* text, int x,
     SDL_DestroyTexture(textTexture);
 }
 
-void drawUI(SDL_Renderer* renderer, TTF_Font* font) {
-    
+void drawUI(SDL_Renderer* renderer, TTF_Font* font, const std::string& expression) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
 
-    
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-    
     SDL_Rect constantesBox = { 50, 50, 200, 500 };
     SDL_Rect ingresoBox = { 300, 50, 400, 150 };
     SDL_Rect variablesBox = { 750, 50, 200, 500 };
     SDL_Rect historialBox = { 300, 250, 400, 300 };
-
-  
+    SDL_Rect botonBox = { ingresoBox.x + ingresoBox.w / 4, ingresoBox.y + ingresoBox.h + 1.5, ingresoBox.w / 2, 50 };  
     SDL_RenderDrawRect(renderer, &constantesBox);
     SDL_RenderDrawRect(renderer, &ingresoBox);
     SDL_RenderDrawRect(renderer, &variablesBox);
     SDL_RenderDrawRect(renderer, &historialBox);
+    SDL_RenderDrawRect(renderer, &botonBox);
 
     SDL_Color textColor = { 0, 0, 0, 255 };
 
-    
     renderText(renderer, font, "Constantes", constantesBox.x + constantesBox.w / 2, constantesBox.y + 20, textColor);
-    renderText(renderer, font, "Ingreso de Expresion", ingresoBox.x + ingresoBox.w / 2, ingresoBox.y + ingresoBox.h / 2, textColor);
+    renderText(renderer, font, "Ingreso de Expresion", ingresoBox.x + ingresoBox.w / 2, ingresoBox.y + 20, textColor);
+    renderText(renderer, font, expression, ingresoBox.x + ingresoBox.w / 2, ingresoBox.y + ingresoBox.h / 2, textColor);
     renderText(renderer, font, "Variables", variablesBox.x + variablesBox.w / 2, variablesBox.y + 20, textColor);
     renderText(renderer, font, "Historial", historialBox.x + historialBox.w / 2, historialBox.y + 20, textColor);
+    renderText(renderer, font, "Procesar Expresion", botonBox.x + botonBox.w / 2, botonBox.y + botonBox.h / 2, textColor);
 
     SDL_RenderPresent(renderer);
+}
+
+bool isMouseInsideBox(int mouseX, int mouseY, SDL_Rect box) {
+    return (mouseX > box.x) && (mouseX < box.x + box.w) &&
+        (mouseY > box.y) && (mouseY < box.y + box.h);
 }
 
 int main(int argc, char* args[]) {
@@ -96,7 +105,7 @@ int main(int argc, char* args[]) {
         return -1;
     }
 
-    TTF_Font* font = TTF_OpenFont("LibreFranklin-Bold.ttf", 24); 
+    TTF_Font* font = TTF_OpenFont("LibreFranklin-Bold.ttf", 20);
     if (font == nullptr) {
         std::cout << "Failed to load font! TTF_Error: " << TTF_GetError() << std::endl;
         close(window, renderer, font);
@@ -105,17 +114,43 @@ int main(int argc, char* args[]) {
 
     bool quit = false;
     SDL_Event e;
-
+    std::string expression;
+    std::string savedExpression;
+   
+   // SDL_Rect botonBox = { 300 + 500 / 4, 50 + 150 + 20, 400 / 4, 50 };
+   
+    SDL_Rect botonBox = { 300 + 400 / 4, 50 + 150 - 25, 400 / 2, 50 };
+    SDL_StartTextInput();
     while (!quit) {
         while (SDL_PollEvent(&e) != 0) {
             if (e.type == SDL_QUIT) {
                 quit = true;
             }
+            else if (e.type == SDL_TEXTINPUT) {
+                expression += e.text.text;
+            }
+            else if (e.type == SDL_KEYDOWN) {
+                if (e.key.keysym.sym == SDLK_BACKSPACE && !expression.empty()) {
+                    expression.pop_back();
+                }
+                else if (e.key.keysym.sym == SDLK_RETURN) {
+                    
+                    std::cout << "Expresion ingresada: " << expression << std::endl;
+                }
+            }
+            else if (e.type == SDL_MOUSEBUTTONDOWN) {
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+                if (isMouseInsideBox(x, y, botonBox)) {
+                    savedExpression = expression;
+                    std::cout << "Expresion guardada: " << savedExpression << std::endl;
+                }
+            }
         }
 
-        drawUI(renderer, font);
+        drawUI(renderer, font, expression);
     }
-
+    SDL_StopTextInput();
     close(window, renderer, font);
 
     return 0;

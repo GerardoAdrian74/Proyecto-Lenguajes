@@ -141,6 +141,7 @@
     <Text Include="Constantes.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Constantes_Variables.hpp" />
     <ClInclude Include="expression_evaluator.h" />
     <ClInclude Include="Posfijo.h" />
   </ItemGroup>

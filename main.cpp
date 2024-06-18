@@ -182,6 +182,69 @@ void renderText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text,
     SDL_DestroyTexture(textTexture);
 }
 
+bool showConfirmationDialog(SDL_Renderer* renderer, TTF_Font* font, const std::string& message) {
+    // Tamaño de la ventana emergente
+    int popupWidth = 300;
+    int popupHeight = 200;
+    int screenWidth = 800;  // Cambia esto según el tamaño de tu ventana principal
+    int screenHeight = 600; // Cambia esto según el tamaño de tu ventana principal
+
+    // Calcula la posición para centrar la ventana emergente
+    int popupX = (screenWidth - popupWidth) / 2;
+    int popupY = (screenHeight - popupHeight) / 2;
+
+    SDL_Rect popupRect = { popupX, popupY, popupWidth, popupHeight };
+    SDL_Rect yesButtonRect = { popupX + 50, popupY + 120, 80, 40 };
+    SDL_Rect noButtonRect = { popupX + 170, popupY + 120, 80, 40 };
+
+    bool result = false;
+    bool running = true;
+    SDL_Event e;
+
+    while (running) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                running = false;
+                break;
+            }
+            if (e.type == SDL_MOUSEBUTTONDOWN) {
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+                if (x >= yesButtonRect.x && x <= yesButtonRect.x + yesButtonRect.w &&
+                    y >= yesButtonRect.y && y <= yesButtonRect.y + yesButtonRect.h) {
+                    result = true;
+                    running = false;
+                }
+                if (x >= noButtonRect.x && x <= noButtonRect.x + noButtonRect.w &&
+                    y >= noButtonRect.y && y <= noButtonRect.y + noButtonRect.h) {
+                    result = false;
+                    running = false;
+                }
+            }
+        }
+
+        // Renderiza la ventana emergente
+        SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+        SDL_RenderFillRect(renderer, &popupRect);
+
+        // Renderiza el texto del mensaje
+        SDL_Color textColor = { 0, 0, 0, 255 };
+        renderText(renderer, font, message, popupX + popupWidth / 2, popupY + 50, textColor);
+
+        // Renderiza los botones
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        SDL_RenderFillRect(renderer, &yesButtonRect);
+        renderText(renderer, font, "Sí", yesButtonRect.x + yesButtonRect.w / 2, yesButtonRect.y + yesButtonRect.h / 2, textColor);
+
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        SDL_RenderFillRect(renderer, &noButtonRect);
+        renderText(renderer, font, "No", noButtonRect.x + noButtonRect.w / 2, noButtonRect.y + noButtonRect.h / 2, textColor);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    return result;
+}
 std::vector<std::string> loadConstants(vector<Constantes_Variables::Constante> arr) {
     std::vector<std::string> constants;
     for (Constantes_Variables::Constante tmp : arr) {
@@ -280,7 +343,9 @@ bool isMouseInsideBox(int mouseX, int mouseY, SDL_Rect box) {
     return (mouseX > box.x) && (mouseX < box.x + box.w) &&
         (mouseY > box.y) && (mouseY < box.y + box.h);
 }
-
+bool confirmAction(SDL_Renderer* renderer, TTF_Font* font, const std::string& message) {
+    return showConfirmationDialog(renderer, font, message);
+}
 bool isConstant(const std::string& variable) {
     return variable == "PI" || variable == "E";
 }
@@ -360,7 +425,12 @@ int main(int argc, char* args[]) {
                 int x, y;
                 SDL_GetMouseState(&x, &y);
                 if (isMouseInsideBox(x, y, botonBox)) {
-                    obj.agregarVariable(ListaConstantes, ListaVariables, expression);
+                    if(obj.agregarVariable(ListaConstantes, ListaVariables, expression)==2){
+                   
+                    if (confirmAction(renderer, font, "Variable existente ¿Continuar?")) {
+                        obj.modificarVariable(expression);
+                    }
+                    }
                     ListaVariables = obj.CargarVariables();
                     items = loadVariables(ListaVariables);
                     comboBox.updateItems(items2);
@@ -372,6 +442,7 @@ int main(int argc, char* args[]) {
                     expression = comboBox.getSelectedItem();
                 }
             }
+
             comboBox.handleEvent(e);
         }
          ListaVariables = obj.CargarVariables();

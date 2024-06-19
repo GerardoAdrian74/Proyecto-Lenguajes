@@ -49,7 +49,7 @@ public:
     ComboBox(int x, int y, int w, int h, const std::vector<std::string>& items, TTF_Font* font, SDL_Renderer* renderer)
         : rect{ x, y, w, h }, items(items), font(font), renderer(renderer), selectedItemIndex(-1), expanded(false),
         scrollOffset(0), maxVisibleItems(5) {
-        bgColor = { 255, 255, 255, 255 }; // White
+        bgColor = { 127, 255, 212, 255 }; // White
         textColor = { 0, 0, 0, 255 };     // Black
         outlineColor = { 0, 0, 0, 255 };  // Black
         scrollBarColor = { 200, 200, 200, 255 }; // Gray
@@ -303,7 +303,6 @@ std::vector<std::string> loadConstants(vector<Constantes_Variables::Constante> a
             }
         }
         t += p;
-        cout << "Clave: " << t << endl;
         constants.push_back(t);
     }
     return constants;
@@ -322,7 +321,6 @@ std::vector<std::string> loadVariables(vector<Constantes_Variables::Constante> a
             }
         }
         t += p;
-        cout << "Clave: " << t << endl;
         variables.push_back(t);
     }
     return variables;
@@ -483,16 +481,22 @@ int main(int argc, char* args[]) {
                 int x, y;
                 SDL_GetMouseState(&x, &y);
                 if (isMouseInsideBox(x, y, botonBox)) {
-                    if(obj.agregarVariable(ListaConstantes, ListaVariables, expression)==2){
+                    int result = obj.agregarVariable(ListaConstantes, ListaVariables, expression);
+                    if(result==2){
                     
                     if (confirmAction(renderer, font, "Variable existente ¿Continuar?")) {
                         obj.modificarVariable(expression);
                     }
                     }
-                    agregarHistorial(expression);
-                    ListaVariables = obj.CargarVariables();
-                    historial =loadHistorial();
-                    comboBox.updateItems(historial);
+                    else if (result == 0) {
+                        expression.clear();
+                    }
+                    else {
+                        agregarHistorial(expression);
+                        historial = loadHistorial();
+                        comboBox.updateItems(historial);
+                        expression.clear();
+                    } 
                     expression.clear();
                 }
                 if (isMouseInsideBox(x, y, comboBoxButtonBox)) { // Check for ComboBox button press
@@ -505,6 +509,7 @@ int main(int argc, char* args[]) {
             comboBox.handleEvent(e);
         }
          ListaVariables = obj.CargarVariables();
+         items = loadVariables(ListaVariables);
         drawUI(renderer, font, expression, history, items, constants, comboBox);
     }
     SDL_StopTextInput();

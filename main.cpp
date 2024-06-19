@@ -47,23 +47,27 @@ const int SCREEN_HEIGHT = 600;
 class ComboBox {
 public:
     ComboBox(int x, int y, int w, int h, const std::vector<std::string>& items, TTF_Font* font, SDL_Renderer* renderer)
-        : rect{ x, y, w, h }, items(items), font(font), renderer(renderer), selectedItemIndex(-1), expanded(false) {
+        : rect{ x, y, w, h }, items(items), font(font), renderer(renderer), selectedItemIndex(-1), expanded(false),
+        scrollOffset(0), maxVisibleItems(5) {
         bgColor = { 255, 255, 255, 255 }; // White
         textColor = { 0, 0, 0, 255 };     // Black
         outlineColor = { 0, 0, 0, 255 };  // Black
+        scrollBarColor = { 200, 200, 200, 255 }; // Gray
+        updateScrollBar();
     }
 
     void handleEvent(SDL_Event& e) {
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+        SDL_Point mousePoint = { x, y };
+
         if (e.type == SDL_MOUSEBUTTONDOWN) {
-            int x, y;
-            SDL_GetMouseState(&x, &y);
-            SDL_Point mousePoint = { x, y };
             if (SDL_PointInRect(&mousePoint, &rect)) {
                 expanded = !expanded;
             }
             else if (expanded) {
                 for (size_t i = 0; i < items.size(); ++i) {
-                    SDL_Rect itemRect = { rect.x, rect.y + static_cast<int>(rect.h * (i + 1)), rect.w, rect.h };
+                    SDL_Rect itemRect = { rect.x, rect.y + static_cast<int>(rect.h * (i + 1)) - scrollOffset, rect.w, rect.h };
                     if (SDL_PointInRect(&mousePoint, &itemRect)) {
                         selectedItemIndex = i;
                         expanded = false;
@@ -75,16 +79,35 @@ public:
                 expanded = false;
             }
         }
+        else if (e.type == SDL_MOUSEWHEEL && expanded) {
+            if (e.wheel.y > 0) {
+                scrollOffset -= rect.h;
+            }
+            else if (e.wheel.y < 0) {
+                scrollOffset += rect.h;
+            }
+
+            int totalHeight = rect.h * items.size();
+            int maxScrollOffset = totalHeight - (rect.h * maxVisibleItems);
+            if (scrollOffset < 0) scrollOffset = 0;
+            if (scrollOffset > maxScrollOffset) scrollOffset = maxScrollOffset;
+
+            updateScrollBar();
+        }
     }
+
     void updateItems(const std::vector<std::string>& newItems) {
         items = newItems;
+        updateScrollBar();
     }
+
     std::string getSelectedItem() const {
         if (selectedItemIndex >= 0 && selectedItemIndex < items.size()) {
             return items[selectedItemIndex];
         }
         return "";
     }
+
     void render() {
         SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
         SDL_RenderFillRect(renderer, &rect);
@@ -97,13 +120,20 @@ public:
 
         if (expanded) {
             for (size_t i = 0; i < items.size(); ++i) {
-                SDL_Rect itemRect = { rect.x, rect.y + static_cast<int>(rect.h * (i + 1)), rect.w, rect.h };
-                SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
-                SDL_RenderFillRect(renderer, &itemRect);
-                SDL_SetRenderDrawColor(renderer, outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a);
-                SDL_RenderDrawRect(renderer, &itemRect);
-                renderText(items[i], itemRect.x + 5, itemRect.y + 5);
+                if (i >= scrollOffset / rect.h && i < (scrollOffset / rect.h) + maxVisibleItems) {
+                    SDL_Rect itemRect = { rect.x, rect.y + static_cast<int>(rect.h * ((i - (scrollOffset / rect.h)) + 1)), rect.w, rect.h };
+                    SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+                    SDL_RenderFillRect(renderer, &itemRect);
+                    SDL_SetRenderDrawColor(renderer, outlineColor.r, outlineColor.g, outlineColor.b, outlineColor.a);
+                    SDL_RenderDrawRect(renderer, &itemRect);
+                    renderText(items[i], itemRect.x + 5, itemRect.y + 5);
+                }
             }
+
+            // Render scrollbar
+            SDL_Rect scrollBarRect = { rect.x + rect.w - 10, rect.y + static_cast<int>(scrollOffset * (rect.h - scrollBarHeight) / (items.size() * rect.h)), 10, scrollBarHeight };
+            SDL_SetRenderDrawColor(renderer, scrollBarColor.r, scrollBarColor.g, scrollBarColor.b, scrollBarColor.a);
+            SDL_RenderFillRect(renderer, &scrollBarRect);
         }
     }
 
@@ -112,9 +142,13 @@ private:
     std::vector<std::string> items;
     int selectedItemIndex;
     bool expanded;
+    int scrollOffset;
+    int maxVisibleItems;
+    int scrollBarHeight;
     SDL_Color bgColor;
     SDL_Color textColor;
     SDL_Color outlineColor;
+    SDL_Color scrollBarColor;
     TTF_Font* font;
     SDL_Renderer* renderer;
 
@@ -125,6 +159,16 @@ private:
         SDL_RenderCopy(renderer, texture, nullptr, &dstRect);
         SDL_DestroyTexture(texture);
         SDL_FreeSurface(surface);
+    }
+
+    void updateScrollBar() {
+        if (items.size() <= maxVisibleItems) {
+            scrollBarHeight = rect.h * items.size() / maxVisibleItems;
+        }
+        else {
+            scrollBarHeight = (rect.h * maxVisibleItems) / items.size();
+            if (scrollBarHeight < 1) scrollBarHeight = 1; 
+        }
     }
 };
 bool init(SDL_Window** window, SDL_Renderer** renderer) {
@@ -366,7 +410,24 @@ void processExpression(const std::string& expression, std::unordered_map<std::st
         }
     }
 }
-
+vector<string> loadHistorial() {
+    ifstream leer;
+    leer.open("Historial.txt",ios::in);
+    vector<string> Historial;
+    Historial.push_back("Escoge una expresion");
+    string linea;
+    while (getline(leer, linea)) {
+        Historial.push_back(linea);
+    }
+    leer.close();
+    return Historial;
+}
+void agregarHistorial(string expresion) {
+    ofstream escribir;
+    escribir.open("Historial.txt", ios::app);
+    escribir << expresion << endl;
+    escribir.close();
+}
 int main(int argc, char* args[]) {
     Constantes_Variables obj;
     vector<Constantes_Variables::Constante> ListaConstantes;
@@ -391,11 +452,8 @@ int main(int argc, char* args[]) {
 
     std::vector<std::string> constants = loadConstants(ListaConstantes);
     std::vector<std::string> items = loadVariables(ListaVariables);
-    std::vector<std::string> items2;
-    items2.push_back("prueba");
-    items2.push_back("hola");
-    items2.push_back("test");
-    ComboBox comboBox(350, 350, 300, 30, items2, font, renderer);
+    std::vector<std::string> historial=loadHistorial();
+    ComboBox comboBox(350, 350, 300, 30, historial, font, renderer);
     bool quit = false;
     SDL_Event e;
     std::string expression;
@@ -426,14 +484,15 @@ int main(int argc, char* args[]) {
                 SDL_GetMouseState(&x, &y);
                 if (isMouseInsideBox(x, y, botonBox)) {
                     if(obj.agregarVariable(ListaConstantes, ListaVariables, expression)==2){
-                   
+                    
                     if (confirmAction(renderer, font, "Variable existente ¿Continuar?")) {
                         obj.modificarVariable(expression);
                     }
                     }
+                    agregarHistorial(expression);
                     ListaVariables = obj.CargarVariables();
-                    items = loadVariables(ListaVariables);
-                    comboBox.updateItems(items2);
+                    historial =loadHistorial();
+                    comboBox.updateItems(historial);
                     expression.clear();
                 }
                 if (isMouseInsideBox(x, y, comboBoxButtonBox)) { // Check for ComboBox button press

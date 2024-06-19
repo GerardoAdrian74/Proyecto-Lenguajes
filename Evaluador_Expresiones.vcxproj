@@ -139,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="Constantes.txt" />
+    <Text Include="Historial.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Constantes_Variables.hpp" />

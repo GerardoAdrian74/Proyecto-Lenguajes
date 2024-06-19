@@ -3,6 +3,9 @@
 
 
 
+
+
+
 Posfijo::Posfijo() {
 
 }
@@ -20,15 +23,15 @@ int Posfijo::tipoOperadores(char op) {
     return 0;
 }
 
-// Función para verificar si un carácter es un operador
+
 bool Posfijo::es_operador(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '^';
 }
 
-// Función para validar la expresión infija
+
 bool Posfijo::validar_expresion(const string& expresion) {
     stack<char> pila;
-    bool lastWasOperator = true;  // True al inicio para manejar el primer número
+    bool lastWasOperator = true;
 
     for (char c : expresion) {
         if (isspace(c)) {
@@ -68,7 +71,6 @@ string Posfijo::infija_a_postfija(const string& expresion) {
 
     for (char c : expresion) {
         if (isdigit(c) || c == '.') {
-            // Construimos el número si es dígito o punto decimal
             numero << c;
         }
         else {
@@ -87,7 +89,7 @@ string Posfijo::infija_a_postfija(const string& expresion) {
                     resultado.push_back(string(1, pila.top()));
                     pila.pop();
                 }
-                pila.pop(); // Eliminamos el '('
+                pila.pop();
             }
             else if (es_operador(c)) {
                 while (!pila.empty() && tipoOperadores(pila.top()) >= tipoOperadores(c)) {
@@ -103,13 +105,13 @@ string Posfijo::infija_a_postfija(const string& expresion) {
         resultado.push_back(numero.str());
     }
 
-    // Vaciamos la pila restante
+
     while (!pila.empty()) {
         resultado.push_back(string(1, pila.top()));
         pila.pop();
     }
 
-    // Convertimos el vector resultado a una cadena de texto
+
     stringstream rpn;
     for (const string& s : resultado) {
         rpn << s << " ";
@@ -118,7 +120,7 @@ string Posfijo::infija_a_postfija(const string& expresion) {
     return rpn.str();
 }
 
-// Función para evaluar una expresión postfija (RPN)
+
 double Posfijo::evaluar_postfija(const string& expresion) {
     stack<double> pila;
     stringstream ss(expresion);
@@ -166,13 +168,14 @@ double Posfijo::evaluar_postfija(const string& expresion) {
 }
 
 int Posfijo::evaluar(const string& expresion) {
-    if (!validar_expresion(expresion)) {
+    string nuevo = convertirVariable(variables, constantes, expresion);
+    if (!validar_expresion(nuevo)) {
         cout << "La expresión infija es inválida." << endl;
         return 1;
     }
 
     try {
-        string postfija = infija_a_postfija(expresion);
+        string postfija = infija_a_postfija(nuevo);
         cout << "Expresion postfija: " << postfija << endl;
         double resultado = evaluar_postfija(postfija);
         cout << "Resultado final: " << resultado << endl;
@@ -182,10 +185,57 @@ int Posfijo::evaluar(const string& expresion) {
         return 1;
     }
 }
+
+int Posfijo::esVariable(vector<Constantes_Variables::Constante>& variables, char expresion) {
+    string var(1, expresion);
+    for (const auto& v : variables) {
+        if (v.clave == var) {
+            return v.valor;
+        }
+    }
+    return NULL;
+}
+int Posfijo::esConstante(vector<Constantes_Variables::Constante>& constantes, char expresion) {
+    string constante(1, expresion);
+    for (const auto& c : constantes) {
+        if (c.clave == constante) {
+            return c.valor;
+        }
+    }
+    return NULL;
+}
+string Posfijo::convertirVariable(vector<Constantes_Variables::Constante>& variables, vector<Constantes_Variables::Constante>& constantes, string expresion) {
+    string expresionConvertida;
+    int var;
+    int constante;
+    for (char c : expresion) {
+        if (!isalpha(c)) {
+            expresionConvertida = expresionConvertida + c;
+        }
+        if (isalpha(c)) {
+            var = esVariable(variables, c);
+            constante = esConstante(constantes, c);
+            if (var != NULL) {
+                expresionConvertida = expresionConvertida + to_string(var);
+            }
+            else if (constante != NULL) {
+                expresionConvertida = expresionConvertida + to_string(constante);
+            }
+            else {
+                throw runtime_error("Variable no definida: " + c);
+
+            }
+        }
+    }
+    return expresionConvertida;
+}
 /*
 int main() {
-    string expresion = "10+(1+2)*2^3%2";
+
+    string expresion = "y+(1+2)*2^3%5";
+    cout << "Expresion " << expresion << endl;
     Posfijo* resolver = new Posfijo();
+
     resolver->evaluar(expresion);
 
 
